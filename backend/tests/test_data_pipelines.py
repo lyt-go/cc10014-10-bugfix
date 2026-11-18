@@ -41,6 +41,7 @@ def _clear_all():
     store._archive_records.clear()
     store._backfill_partitions.clear()
     store._versions.clear()
+    store.clear_manifest()
 
 # ---------------------------------------------------------------------------
 # 1. 入库→映射→贴源层链路

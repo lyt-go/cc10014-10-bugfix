@@ -6,6 +6,7 @@ const ColumnMapping = () => import('@/views/column_mapping/index.vue')
 const CleanseRule = () => import('@/views/cleanse_rule/index.vue')
 const DedupConfig = () => import('@/views/dedup_config/index.vue')
 const OdsLayer = () => import('@/views/ods_layer/index.vue')
+const OdsManifest = () => import('@/views/ods_manifest/index.vue')
 const DwdLayer = () => import('@/views/dwd_layer/index.vue')
 const DwsLayer = () => import('@/views/dws_layer/index.vue')
 const DimModel = () => import('@/views/dim_model/index.vue')
@@ -29,6 +30,7 @@ const router = createRouter({
     { path: '/cleanse_rule', name: 'cleanse_rule', component: CleanseRule },
     { path: '/dedup_config', name: 'dedup_config', component: DedupConfig },
     { path: '/ods_layer', name: 'ods_layer', component: OdsLayer },
+    { path: '/ods_manifest', name: 'ods_manifest', component: OdsManifest },
     { path: '/dwd_layer', name: 'dwd_layer', component: DwdLayer },
     { path: '/dws_layer', name: 'dws_layer', component: DwsLayer },
     { path: '/dim_model', name: 'dim_model', component: DimModel },

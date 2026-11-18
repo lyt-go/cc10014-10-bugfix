@@ -94,9 +94,25 @@ def run_action(entry_id: int, payload: ActionPayload) -> ActionResult:
 
 @router.post("/{entry_id}/build")
 def build_dwd(entry_id: int) -> dict[str, Any]:
-    """从关联ODS表读取数据，应用清洗+去重，生成DWD表。"""
+    """从关联ODS表读取数据，应用清洗+去重，生成DWD表。父层已下线时拒绝刷新。"""
     result = service.build_dwd_from_ods(entry_id)
     return result
+
+
+@router.get("/options/parent_ods")
+def available_parent_ods() -> dict[str, Any]:
+    """新明细构建的可选父层：已下线贴源表不再出现。"""
+    return {"items": service.available_parent_ods()}
+
+
+@router.get("/{entry_id}/parent_manifest")
+def parent_manifest(entry_id: int) -> dict[str, Any]:
+    """明细层管理详情页：跨模块读取父层贴源表的ODS表版本清单结果。"""
+    from app.services.ods_manifest import manifest_service
+    entry = manifest_service.get_entry_for_dwd(entry_id)
+    if entry is None:
+        raise HTTPException(status_code=404, detail=f"明细表 {entry_id} 的父层贴源表暂无清单记录")
+    return entry
 
 
 @router.get("/{entry_id}/data")

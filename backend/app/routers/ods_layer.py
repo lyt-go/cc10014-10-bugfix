@@ -85,8 +85,32 @@ def create_entry(payload: dict[str, object]) -> ActionResult:
 
 @router.post("/{entry_id}/actions", response_model=ActionResult)
 def run_action(entry_id: int, payload: ActionPayload) -> ActionResult:
-    """对单条贴源表执行提交校验、确认上线、标记下线；不允许的动作会被拦下并说明原因。"""
-    entry, message = service.run_action(entry_id, payload.action.strip())
+    """对单条贴源表执行提交校验、确认上线、标记下线；状态只允许按顺序单向推进。
+
+    标记下线支持 conflict_policy：下线优先（默认，ODS立即下线且DWD记录等待父层清单）
+    或刷新优先（DWD完成一次刷新后ODS状态才变为已下线）。
+    """
+    from app.services.ods_manifest import POLICY_OFFLINE_FIRST
+    policy = (payload.conflict_policy or POLICY_OFFLINE_FIRST).strip()
+    entry, message = service.run_action(entry_id, payload.action.strip(), conflict_policy=policy)
+    if entry is None:
+        return ActionResult(ok=False, message=message)
+    return ActionResult(ok=True, message=message, entry=entry)
+
+
+@router.post("/{entry_id}/retry", response_model=ActionResult)
+def retry_offline(entry_id: int) -> ActionResult:
+    """「先完成当前刷新再提交下线」重试：中断后贴源表回到完整版本，清单只续写未完成部分。"""
+    entry, message = service.retry_offline(entry_id)
+    if entry is None:
+        return ActionResult(ok=False, message=message)
+    return ActionResult(ok=True, message=message, entry=entry)
+
+
+@router.post("/{entry_id}/interrupt", response_model=ActionResult)
+def simulate_interrupt(entry_id: int) -> ActionResult:
+    """模拟清单写入异常中断（演练用）。"""
+    entry, message = service.simulate_interrupt(entry_id)
     if entry is None:
         return ActionResult(ok=False, message=message)
     return ActionResult(ok=True, message=message, entry=entry)

@@ -33,6 +33,8 @@ class ActionPayload(BaseModel):
 
     action: str
     remark: str | None = None
+    # 下线请求与 DWD 刷新冲突时采用的策略：下线优先 / 刷新优先
+    conflict_policy: str | None = None
 
 
 

@@ -29,6 +29,10 @@ class Store:
         self._archive_records: list[dict[str, Any]] = []
         # 补数区间记录
         self._backfill_partitions: dict[str, list[dict[str, Any]]] = {}
+        # ODS表版本清单：贴源表编号 -> 清单条目（跨模块持久化，DWD 也通过服务层读取）
+        self._ods_manifest: dict[str, dict[str, Any]] = {}
+        # 正在刷新的 DWD 任务：贴源表编号 -> [明细表编号]，用于下线/刷新冲突判定
+        self._ods_active_refreshes: dict[str, list[str]] = {}
 
     def module_names(self) -> list[str]:
         return sorted(self._tables)
@@ -165,6 +169,43 @@ class Store:
 
     def get_backfill_partitions(self, job_id: str) -> list[dict[str, Any]]:
         return list(self._backfill_partitions.get(job_id, []))
+
+    # ---- ODS表版本清单（跨模块持久化） ----
+
+    def manifest_rows(self) -> list[dict[str, Any]]:
+        return list(self._ods_manifest.values())
+
+    def get_manifest_entry(self, ods_code: str) -> dict[str, Any] | None:
+        return self._ods_manifest.get(ods_code)
+
+    def upsert_manifest_entry(self, ods_code: str, entry: dict[str, Any]) -> dict[str, Any]:
+        self._ods_manifest[ods_code] = entry
+        return entry
+
+    def next_manifest_seq(self) -> int:
+        return max((int(row.get("顺序号", 0)) for row in self._ods_manifest.values()), default=0) + 1
+
+    def active_refreshes(self, ods_code: str) -> list[str]:
+        return list(self._ods_active_refreshes.get(ods_code, []))
+
+    def is_refresh_active(self, ods_code: str) -> bool:
+        return bool(self._ods_active_refreshes.get(ods_code))
+
+    def mark_refresh_active(self, ods_code: str, dwd_code: str) -> None:
+        bucket = self._ods_active_refreshes.setdefault(ods_code, [])
+        if dwd_code not in bucket:
+            bucket.append(dwd_code)
+
+    def mark_refresh_done(self, ods_code: str, dwd_code: str) -> None:
+        bucket = self._ods_active_refreshes.get(ods_code)
+        if bucket and dwd_code in bucket:
+            bucket.remove(dwd_code)
+        if bucket is not None and not bucket:
+            self._ods_active_refreshes.pop(ods_code, None)
+
+    def clear_manifest(self) -> None:
+        self._ods_manifest.clear()
+        self._ods_active_refreshes.clear()
 
 
 store = Store()

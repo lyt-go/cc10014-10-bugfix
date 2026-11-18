@@ -512,6 +512,11 @@ test('CRUD模块：筛选、导出、登记、动作、指标全链路', async (
     const createdRow = page.locator('tbody tr').filter({ hasText: createdValues[0] })
     for (const [i, action] of mod.actions.entries()) {
       await createdRow.getByRole('button', { name: action, exact: true }).click()
+      // 贴源表下线需选择冲突策略并在弹窗中二次确认
+      if (mod.key === 'ods_layer' && action === '标记下线') {
+        await expect(page.getByTestId('offline-modal')).toBeVisible()
+        await page.getByTestId('confirm-offline').click()
+      }
       await expect(createdRow).toHaveAttribute('data-status', mod.actionTargets[i])
     }
   }
